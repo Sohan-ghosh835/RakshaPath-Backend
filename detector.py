@@ -10,6 +10,8 @@ Key improvements over original:
 """
 
 import os
+os.environ["YOLO_CONFIG_DIR"] = "/tmp/Ultralytics"
+os.environ["OPENCV_LOG_LEVEL"] = "OFF"
 import uuid
 import time
 import math
