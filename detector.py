@@ -350,3 +350,31 @@ class RoadDetectionEngine:
                 state.record_emission("violence", frame_id)
 
         return annotated_frame, events, tick
+
+    def process_live_frame(
+        self,
+        image_bytes: bytes,
+        state: VideoState,
+        frame_id: int = 0,
+    ) -> Tuple[List[DetectionEvent], ViolenceScoreTick, Tuple[int, int]]:
+        """
+        Processes a live camera frame (JPEG bytes) sent from the user's browser camera.
+        Decodes frame, runs YOLO models (Road Yolo.pt + yolo11n-pose.pt), and returns
+        real detection events and violence score tick.
+        """
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if frame is None:
+            return [], ViolenceScoreTick(score=0, threshold=6, state="NORMAL"), (640, 360)
+
+        height, width = frame.shape[:2]
+
+        annotated_frame, events, tick = self.process_frame(
+            frame=frame,
+            state=state,
+            frame_id=frame_id,
+            timestamp_iso=time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime()),
+            save_snapshot=False,
+        )
+
+        return events, tick, (width, height)

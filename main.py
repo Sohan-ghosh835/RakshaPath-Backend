@@ -75,19 +75,16 @@ engine = RoadDetectionEngine(
 camera_manager = WebcamManager(engine=engine, db=db, camera_index=0)
 
 
+os.environ["YOLO_CONFIG_DIR"] = "/tmp/Ultralytics"
+os.environ["OPENCV_LOG_LEVEL"] = "OFF"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Start live webcam capture loop in background
-    capture_task = asyncio.create_task(camera_manager.capture_loop())
-    print("[FastAPI] Background webcam capture loop started.")
+    print("[FastAPI] RakshaPath AI Backend initialized with YOLO models (Road Yolo.pt + yolo11n-pose.pt).")
     yield
-    # Shutdown: stop camera
-    camera_manager.stop()
-    capture_task.cancel()
     print("[FastAPI] Backend shutdown complete.")
 
-
-os.environ["OPENCV_LOG_LEVEL"] = "OFF"
 
 app = FastAPI(
     title="Road Issues & Violence Detection API",
@@ -108,47 +105,90 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return {
         "status": "online",
         "service": "RakshaPath AI Backend",
         "version": "1.0.0",
+        "models": ["Road Yolo.pt", "yolo11n-pose.pt"],
         "docs": "/docs",
     }
 
 
-# --- WebSocket Endpoint ---
-@app.websocket("/ws/events")
-async def websocket_events(websocket: WebSocket):
-    await camera_manager.register_websocket(websocket)
+# Live session states for browser streaming
+live_states: dict = {}
+
+
+# --- Mode B: Live Browser Camera Detection Endpoints ---
+
+@app.post("/api/v1/live/detect")
+async def detect_live_frame(
+    file: UploadFile = File(...),
+    session_id: str = Query("default"),
+):
+    """
+    Accepts a live camera frame (JPEG) from the user's browser,
+    runs YOLO inference (Road Yolo.pt + yolo11n-pose.pt),
+    and returns real bounding boxes, confidence, and violence score.
+    """
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Empty frame")
+
+    if session_id not in live_states:
+        live_states[session_id] = camera_manager.state
+
+    state = live_states[session_id]
+    events, tick, (width, height) = engine.process_live_frame(contents, state)
+
+    # Save real events to database for live history
+    for ev in events:
+        try:
+            db.add_event(ev)
+        except Exception:
+            pass
+
+    return {
+        "events": [e.dict(by_alias=True) for e in events],
+        "tick": tick.dict(),
+        "width": width,
+        "height": height,
+    }
+
+
+@app.websocket("/ws/live")
+async def websocket_live_stream(websocket: WebSocket):
+    """
+    Real-time WebSocket endpoint for browser camera frame streaming.
+    Receives JPEG binary/base64 frames, runs YOLO inference, and returns detection JSON.
+    """
+    await websocket.accept()
+    state = camera_manager.state
     try:
         while True:
-            # Keep connection alive & listen for client messages
-            msg = await websocket.receive_text()
+            data = await websocket.receive_bytes()
+            if not data:
+                continue
+
+            events, tick, (width, height) = engine.process_live_frame(data, state)
+
+            for ev in events:
+                try:
+                    db.add_event(ev)
+                except Exception:
+                    pass
+
+            await websocket.send_json({
+                "events": [e.dict(by_alias=True) for e in events],
+                "tick": tick.dict(),
+                "width": width,
+                "height": height,
+            })
     except WebSocketDisconnect:
-        camera_manager.unregister_websocket(websocket)
+        pass
     except Exception:
-        camera_manager.unregister_websocket(websocket)
-
-
-# --- MJPEG Live Video Stream Endpoint ---
-@app.get("/stream/mjpeg")
-async def stream_mjpeg():
-    async def generate_frames():
-        while True:
-            jpeg = camera_manager.get_mjpeg_frame()
-            if jpeg:
-                yield (
-                    b"--frame\r\n"
-                    b"Content-Type: image/jpeg\r\n\r\n" + jpeg + b"\r\n"
-                )
-            await asyncio.sleep(0.033)
-
-    return StreamingResponse(
-        generate_frames(),
-        media_type="multipart/x-mixed-replace; boundary=frame",
-    )
+        pass
 
 
 # --- Mode A: Video Upload & Processing Endpoints ---
