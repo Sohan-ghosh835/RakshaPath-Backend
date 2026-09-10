@@ -11,7 +11,7 @@ import time
 import datetime
 import asyncio
 import imageio.v2 as iio
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 try:
     from backend.detector import RoadDetectionEngine, VideoState
     from backend.database import Database
@@ -22,14 +22,20 @@ except ImportError:
     from schemas import VideoJobResponse, DetectionEvent, BoundingBox
 
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_VIDEOS_DIR = os.path.join(BASE_DIR, "static", "videos")
+
+
 async def process_video_job_async(
     engine: RoadDetectionEngine,
     db: Database,
     job_id: str,
     input_path: str,
-    output_dir: str = "backend/static/videos",
+    output_dir: Optional[str] = None,
 ):
     """Executes video file processing in a background thread."""
+    if output_dir is None:
+        output_dir = DEFAULT_VIDEOS_DIR
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(
         None,
@@ -49,6 +55,8 @@ def _process_video_job_sync(
     input_path: str,
     output_dir: str,
 ):
+    if not output_dir:
+        output_dir = DEFAULT_VIDEOS_DIR
     os.makedirs(output_dir, exist_ok=True)
 
     job = db.get_job(job_id)

@@ -44,11 +44,15 @@ class WebcamManager:
         if self.is_running:
             return
         self.is_running = True
-        self.cap = cv2.VideoCapture(self.camera_index)
-        if not self.cap.isOpened():
-            print(f"[WebcamManager] Warning: Could not open camera index {self.camera_index}. Live webcam will remain idle until connected.")
-        else:
-            print(f"[WebcamManager] Camera index {self.camera_index} opened successfully.")
+        try:
+            self.cap = cv2.VideoCapture(self.camera_index)
+            if self.cap and self.cap.isOpened():
+                print(f"[WebcamManager] Camera index {self.camera_index} opened successfully.")
+            else:
+                print(f"[WebcamManager] Info: No hardware camera found at index {self.camera_index}. Live webcam idle.")
+        except Exception as e:
+            print(f"[WebcamManager] Hardware camera check: {e}")
+            self.cap = None
 
     def stop(self):
         self.is_running = False
@@ -83,21 +87,37 @@ class WebcamManager:
         print("[WebcamManager] Starting async frame capture loop...")
         self.start()
 
+        failed_attempts = 0
         while True:
             if not self.is_running:
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1.0)
                 continue
 
             if not self.cap or not self.cap.isOpened():
-                # Attempt to re-open camera periodically
-                self.cap = cv2.VideoCapture(self.camera_index)
-                if not self.cap.isOpened():
-                    await asyncio.sleep(2.0)
+                failed_attempts += 1
+                if failed_attempts > 3:
+                    # Cloud host mode (Render/AWS) without physical webcam attached
+                    # Sleep longer (30s) to eliminate log spam
+                    await asyncio.sleep(30.0)
+                else:
+                    await asyncio.sleep(5.0)
+
+                try:
+                    self.cap = cv2.VideoCapture(self.camera_index)
+                except Exception:
+                    self.cap = None
+
+                if not self.cap or not self.cap.isOpened():
+                    if failed_attempts == 1:
+                        print(f"[WebcamManager] Info: No physical camera hardware on cloud host. Live camera mode idle.")
                     continue
+                else:
+                    failed_attempts = 0
+                    print(f"[WebcamManager] Camera index {self.camera_index} connected.")
 
             ret, frame = self.cap.read()
             if not ret:
-                await asyncio.sleep(0.03)
+                await asyncio.sleep(0.05)
                 continue
 
             self.frame_counter += 1

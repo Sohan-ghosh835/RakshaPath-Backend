@@ -77,6 +77,19 @@ class VideoState:
         self.last_event_frame[cls_name] = frame_id
 
 
+def resolve_model_path(path: str) -> str:
+    if os.path.exists(path):
+        return path
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    candidate = os.path.join(base_dir, os.path.basename(path))
+    if os.path.exists(candidate):
+        return candidate
+    parent_candidate = os.path.join(os.path.dirname(base_dir), os.path.basename(path))
+    if os.path.exists(parent_candidate):
+        return parent_candidate
+    return path
+
+
 class RoadDetectionEngine:
     """Wraps YOLO pose tracking and road issue object detection."""
 
@@ -96,10 +109,12 @@ class RoadDetectionEngine:
         print(f"[RoadDetectionEngine] Initializing on device: {self.device.upper()}")
 
         # Load models
-        print(f"[RoadDetectionEngine] Loading pose model from '{pose_model_path}'...")
-        self.pose_model = YOLO(pose_model_path)
-        print(f"[RoadDetectionEngine] Loading road model from '{road_model_path}'...")
-        self.road_model = YOLO(road_model_path)
+        pose_path = resolve_model_path(pose_model_path)
+        road_path = resolve_model_path(road_model_path)
+        print(f"[RoadDetectionEngine] Loading pose model from '{pose_path}'...")
+        self.pose_model = YOLO(pose_path)
+        print(f"[RoadDetectionEngine] Loading road model from '{road_path}'...")
+        self.road_model = YOLO(road_path)
         print("[RoadDetectionEngine] Models loaded successfully.")
 
     def update_settings(self, new_settings: DetectionSettings):
