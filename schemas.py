@@ -3,7 +3,7 @@ Pydantic data schemas matching API_CONTRACT.md
 """
 
 from typing import List, Optional, Literal, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 # --- Detection Classes ---
@@ -12,6 +12,7 @@ DetectionClass = Literal["pothole", "accident", "violence"]
 
 # --- Bounding Box ---
 class BoundingBox(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
     x: float
     y: float
     w: float
@@ -20,6 +21,7 @@ class BoundingBox(BaseModel):
 
 # --- Keypoint ---
 class PoseKeypoint(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
     x: float
     y: float
     confidence: float
@@ -27,6 +29,8 @@ class PoseKeypoint(BaseModel):
 
 # --- Detection Event ---
 class DetectionEvent(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
     id: str
     type: Literal["detection"] = "detection"
     timestamp: str  # ISO 8601
@@ -42,6 +46,7 @@ class DetectionEvent(BaseModel):
 
     class Config:
         populate_by_name = True
+        extra = "ignore"
 
 
 # --- Violence Score Tick ---
@@ -118,6 +123,8 @@ class HeatmapCell(BaseModel):
 
 # --- Video Upload & Processing Job ---
 class VideoJobResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
     jobId: str
     filename: str
     status: Literal["queued", "processing", "completed", "failed"]
@@ -131,6 +138,10 @@ class VideoJobResponse(BaseModel):
     error: Optional[str] = None
     events: Optional[List[DetectionEvent]] = None
     violenceCurve: Optional[List[Dict[str, Any]]] = None
+
+    class Config:
+        populate_by_name = True
+        extra = "ignore"
 
 
 # --- Event Review Update Request ---

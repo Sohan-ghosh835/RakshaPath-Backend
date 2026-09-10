@@ -87,6 +87,8 @@ async def lifespan(app: FastAPI):
     print("[FastAPI] Backend shutdown complete.")
 
 
+os.environ["OPENCV_LOG_LEVEL"] = "OFF"
+
 app = FastAPI(
     title="Road Issues & Violence Detection API",
     version="1.0.0",
@@ -104,6 +106,16 @@ app.add_middleware(
 
 # Static files mount
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/")
+async def root():
+    return {
+        "status": "online",
+        "service": "RakshaPath AI Backend",
+        "version": "1.0.0",
+        "docs": "/docs",
+    }
 
 
 # --- WebSocket Endpoint ---

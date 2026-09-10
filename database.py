@@ -291,9 +291,21 @@ class Database:
             events = None
             violence_curve = None
             if row["results_json"]:
-                data = json.loads(row["results_json"])
-                events = [DetectionEvent(**e) for e in data.get("events", [])]
-                violence_curve = data.get("violenceCurve")
+                try:
+                    data = json.loads(row["results_json"])
+                    raw_events = data.get("events", [])
+                    events = []
+                    for e in raw_events:
+                        if isinstance(e, dict):
+                            if "class" in e and "class_name" not in e:
+                                e["class_name"] = e["class"]
+                            try:
+                                events.append(DetectionEvent(**e))
+                            except Exception:
+                                pass
+                    violence_curve = data.get("violenceCurve")
+                except Exception as ex:
+                    print(f"[Database] Warning parsing results_json for {job_id}: {ex}")
 
             return VideoJobResponse(
                 jobId=row["job_id"],
