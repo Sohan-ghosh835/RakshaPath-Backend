@@ -44,13 +44,10 @@ class DetectionEvent(BaseModel):
     snapshotUrl: Optional[str] = None
     poseKeypoints: Optional[List[List[PoseKeypoint]]] = None
 
-    class Config:
-        populate_by_name = True
-        extra = "ignore"
-
 
 # --- Violence Score Tick ---
 class ViolenceScoreTick(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
     type: Literal["violence_score"] = "violence_score"
     score: int
     threshold: int = 6
@@ -59,6 +56,7 @@ class ViolenceScoreTick(BaseModel):
 
 # --- Settings ---
 class DetectionSettings(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
     detectionConfidence: float = 0.50
     poseConfidence: float = 0.50
     requiredFrames: int = 6
@@ -69,6 +67,7 @@ class DetectionSettings(BaseModel):
 
 
 class NotificationSettings(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
     soundEnabled: bool = True
     soundVolume: float = 0.8
     browserPushEnabled: bool = False
@@ -79,11 +78,13 @@ class NotificationSettings(BaseModel):
 
 
 class AppearanceSettings(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
     theme: Literal["dark", "light"] = "dark"
     reduceMotion: bool = False
 
 
 class CameraSource(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
     id: str
     name: str
     source: str  # URL or device index
@@ -91,6 +92,7 @@ class CameraSource(BaseModel):
 
 
 class AppSettings(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
     detection: DetectionSettings = DetectionSettings()
     notifications: NotificationSettings = NotificationSettings()
     appearance: AppearanceSettings = AppearanceSettings()
@@ -101,6 +103,7 @@ class AppSettings(BaseModel):
 
 # --- Analytics ---
 class AnalyticsSummary(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
     totalEventsToday: int
     totalEventsWeek: int
     byClass: Dict[str, int]
@@ -109,6 +112,7 @@ class AnalyticsSummary(BaseModel):
 
 
 class TimeSeriesDataPoint(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
     timestamp: str
     pothole: int
     accident: int
@@ -116,6 +120,7 @@ class TimeSeriesDataPoint(BaseModel):
 
 
 class HeatmapCell(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
     day: str
     hour: int
     count: int
@@ -139,13 +144,10 @@ class VideoJobResponse(BaseModel):
     events: Optional[List[DetectionEvent]] = None
     violenceCurve: Optional[List[Dict[str, Any]]] = None
 
-    class Config:
-        populate_by_name = True
-        extra = "ignore"
-
 
 # --- Event Review Update Request ---
 class EventUpdateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
     reviewed: Optional[bool] = None
     falsePositive: Optional[bool] = None
     acknowledged: Optional[bool] = None
