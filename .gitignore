@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+env/
+venv/
+*.db
+*.sqlite3
+static/uploads/*
+static/videos/*
+static/snapshots/*
+!static/uploads/.gitkeep
+!static/videos/.gitkeep
+!static/snapshots/.gitkeep
