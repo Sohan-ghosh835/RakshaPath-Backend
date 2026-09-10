@@ -36,16 +36,25 @@ async def process_video_job_async(
     """Executes video file processing in a background thread."""
     if output_dir is None:
         output_dir = DEFAULT_VIDEOS_DIR
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(
-        None,
-        _process_video_job_sync,
-        engine,
-        db,
-        job_id,
-        input_path,
-        output_dir,
-    )
+
+    try:
+        await asyncio.to_thread(
+            _process_video_job_sync,
+            engine,
+            db,
+            job_id,
+            input_path,
+            output_dir,
+        )
+    except Exception as e:
+        print(f"[VideoProcessor] Exception running job {job_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        job = db.get_job(job_id)
+        if job:
+            job.status = "failed"
+            job.error = str(e)
+            db.save_job(job)
 
 
 def _process_video_job_sync(

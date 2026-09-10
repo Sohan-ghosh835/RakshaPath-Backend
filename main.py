@@ -116,6 +116,19 @@ async def root():
     }
 
 
+# --- Connection Status WebSocket Endpoint ---
+@app.websocket("/ws/events")
+async def websocket_events(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+
+
 # Live session states for browser streaming
 live_states: dict = {}
 
