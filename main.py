@@ -5,6 +5,8 @@ and REST APIs matching API_CONTRACT.md.
 """
 
 import os
+os.environ["YOLO_CONFIG_DIR"] = "/tmp"
+os.environ["OPENCV_LOG_LEVEL"] = "OFF"
 import uuid
 import asyncio
 import shutil
